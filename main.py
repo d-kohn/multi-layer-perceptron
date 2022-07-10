@@ -30,11 +30,15 @@ for i in range(len(images_test)):
 #print(images_training[index])
 # print(labels[index])
 
-output_layer = []
-hidden_layer = []
+net_layers = [perceptron.perceptron_output(INPUT_SIZE, BIAS) for i in ]
+layer = []
+# for output_target in range(OUTPUT_N): 
+    
+#     layer.append(perceptron.perceptron_output(INPUT_SIZE, BIAS, output_target))
 
-for output_target in range(OUTPUT_N): 
-    output_layer.append(perceptron.perceptron_output(INPUT_SIZE, BIAS, output_target))
+# for index in range(HIDDEN_N): 
+#     hidden_layer.append(perceptron.perceptron_output(INPUT_SIZE, BIAS, output_target))
+
 
 index = 0
 outputs = [0 for i in range(OUTPUT_N)]

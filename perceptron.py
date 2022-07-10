@@ -1,36 +1,39 @@
 from copy import deepcopy
 from numpy import *
+import math
 
 class perceptron_output:
-	def __init__(self,input_size,bias,target):
+	def __init__(self,input_size,bias,eta):
 		self.input_size = input_size
-		self.target = target
+		self.eta = eta
 		self.bias = bias
 		self.weights = []
 		for i in range(input_size+1):
 			self.weights.append(random.rand()*0.1-0.05)
 
-	def train(self,input,target,eta):
-		success = 0
-		self.output = dot(input,self.weights)
-		if self.output > 0:
-			activation = 1
-		else:
-			activation = 0
-		
-		if activation != target:
-			for i in range(len(self.weights)):
-				self.weights[i] += eta*(target-activation)*input[i]
-		else:
-			success = 1
-		
-		return success
+	def train(self,input):
+		return 1/1+math.e ** -dot(input,self.weights)
 
-	def test(self,input):		
-		if dot(input,self.weights) > 0:
-			return 1
-		else:
-		 	return 0
+		# success = 0
+		# self.output = dot(input,self.weights)
+		# if self.output > 0:
+		# 	activation = 1
+		# else:
+		# 	activation = 0
+		
+		# if activation != target:
+		# 	for i in range(len(self.weights)):
+		# 		self.weights[i] += eta*(target-activation)*input[i]
+		# else:
+		# 	success = 1
+		
+		# return success
+
+	# def test(self,input):		
+	# 	if dot(input,self.weights) > 0:
+	# 		return 1
+	# 	else:
+	# 	 	return 0
 		
 		# if activation == target:
 		# else:
