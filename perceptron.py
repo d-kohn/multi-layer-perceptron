@@ -1,68 +1,33 @@
-from copy import deepcopy
 from numpy import *
 import math
 
-class perceptron_output:
-	def __init__(self,input_size,bias,eta):
-		self.input_size = input_size
+OUTPUT = 0
+HIDDEN = 1
+
+class perceptron:
+	def __init__(self, input_size, bias, eta, momentum):
+		self.input_size = input_size +1
 		self.eta = eta
+		self.momentum = momentum
 		self.bias = bias
 		self.weights = []
-		for i in range(input_size+1):
+		self.delta_weights = []
+		for i in range(self.input_size):
 			self.weights.append(random.rand()*0.1-0.05)
+			self.delta_weights.append(0.0)
 
-	def train(self,input):
-		return 1/1+math.e ** -dot(input,self.weights)
+	def activation(self,input):
+		input[0] = self.bias
+		z = dot(input,self.weights)
+		return 1/(1+pow(math.e,-z))
 
-		# success = 0
-		# self.output = dot(input,self.weights)
-		# if self.output > 0:
-		# 	activation = 1
-		# else:
-		# 	activation = 0
-		
-		# if activation != target:
-		# 	for i in range(len(self.weights)):
-		# 		self.weights[i] += eta*(target-activation)*input[i]
-		# else:
-		# 	success = 1
-		
-		# return success
+	def calc_error_sum(self, output_error):
+		sum = 0.0
+		for i in range (len(output_error)):
+			sum += self.weights[i]*output_error[i]
+		return sum
 
-	# def test(self,input):		
-	# 	if dot(input,self.weights) > 0:
-	# 		return 1
-	# 	else:
-	# 	 	return 0
-		
-		# if activation == target:
-		# else:
-		# 	success = 1
-		
-		# return success
-
-
-class perceptron_hidden:
-	def __init__(self,input_size,bias):
-		self.input_size = input_size
-		self.bias = bias
-		self.weights = []
-		for i in range(input_size+1):
-			self.weights.append(random.rand()*0.1-0.05)
-
-	def train(self,input,target,eta):
-		success = 0
-		data.insert(0, self.nData)
-		self.output = dot(data,self.weights)
-		if self.output > 0:
-			activation = 1
-		else:
-			activation = 0
-		
-		if activation != target:
-			for i in range(len(self.weights)):
-				self.weights[i] += eta*(target-activation)*data[i]
-		else:
-			success = 1
-		
-		return success
+	def update_weights(self, error, input):
+		for i in range(self.input_size):
+			self.delta_weights[i] = self.eta*error*input[i]+self.momentum*self.delta_weights[i]
+			self.weights[i] = self.weights[i] + self.delta_weights[i]
