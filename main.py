@@ -2,30 +2,18 @@ from operator import matmul
 import numpy as np
 from mnist import MNIST
 import math
-import perceptron
+import random
 
 BIAS = 1
-HIDDEN_N = 100
+HIDDEN_N = 500
 OUTPUT_N = 10
 ETA = 0.1
 MOMENTUM = 0.9
-TRAINING_UPDATE_FREQ = 100
+TRAINING_UPDATE_FREQ = 1000
+DATA_SCALAR = 1
 
 OUTPUT = 1
 HIDDEN = 0
-
-def calc_output_layer_error(output, target):
-    error = []
-    for i in range(OUTPUT_N):
-        error.append(output[i]*(1 - output[i])*(target[i]-output[i]))
-    return error
-
-def calc_hidden_layer_error(output, output_layer_error):
-    error = []
-    for i in range(HIDDEN_N+1):
-        error.append(output[i]*(1 - output[i])*hidden_layer[i].calc_error_sum(output_layer_error))
-    return error
-
 
 mndata = MNIST('samples')
 
@@ -35,11 +23,9 @@ print("Loading Test Data...")
 images_test, labels_test = mndata.load_testing()
 INPUT_SIZE = len(images_training[0])+1
 
-#index = random.randrange(0, len(images_training))  # choose an index ;-)
-# print(mndata.display(images[index]))
 training_target_counts = [0 for i in range(OUTPUT_N)]
 print("Normalizing Training Data...")
-for i in range(len(images_training)):
+for i in range(int(len(images_training)*DATA_SCALAR)):
     if i % 10000 == 0:
         print(str(i) + "/60000 complete")
     for j in range(len(images_training[i])):
@@ -73,9 +59,10 @@ for epoch in range(50):
     testing_confusion_matrix = [[0 for i in range(OUTPUT_N+1)] for j in range(OUTPUT_N)]
 
     print("Begin epoch ", epoch)
-    for index in range(len(images_training)):
-        if index % TRAINING_UPDATE_FREQ == 0:
-            print("Image index: ", index)
+    for counter in range(int(len(images_training)*DATA_SCALAR)):
+        index = random.randrange(0,len(images_training))
+        if counter % TRAINING_UPDATE_FREQ == 0:
+            print("Image index: ", counter)
         z_h = matmul(images_training[index], hidden_layer_weights)
         hidden_layer_output = 1/(1+pow(math.e,-z_h))
         hidden_layer_output[HIDDEN_N] = BIAS
@@ -104,7 +91,7 @@ for epoch in range(50):
         hidden_delta_weights = ETA*temp+MOMENTUM*hidden_delta_weights
         hidden_layer_weights = hidden_layer_weights + hidden_delta_weights
         
-    f = open("training_data_n100.csv", "a")
+    f = open("training_data_1k.csv", "a")
     f.write(str(epoch))
     for i in range(OUTPUT_N):
         f.write("\n")
@@ -130,7 +117,7 @@ for epoch in range(50):
             if output_layer_output[id] >= 0.9:
                 testing_confusion_matrix[labels_test[index]][id] += 1
 
-    f = open("testing_data_n100.csv", "a")
+    f = open("testing_data_1k.csv", "a")
     f.write(str(epoch))
     for i in range(OUTPUT_N):
         f.write("\n")
