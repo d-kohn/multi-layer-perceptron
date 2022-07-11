@@ -1,5 +1,7 @@
-#import numpy as np
+from operator import matmul
+import numpy as np
 from mnist import MNIST
+import math
 import perceptron
 
 BIAS = 1
@@ -31,16 +33,15 @@ print("Loading Training Data...")
 images_training, labels_training = mndata.load_training()
 print("Loading Test Data...")
 images_test, labels_test = mndata.load_testing()
-INPUT_SIZE = len(images_training[0])
+INPUT_SIZE = len(images_training[0])+1
 
 #index = random.randrange(0, len(images_training))  # choose an index ;-)
 # print(mndata.display(images[index]))
 training_target_counts = [0 for i in range(OUTPUT_N)]
 print("Normalizing Training Data...")
-for i in range(len(images_training)/4):
+for i in range(len(images_training)):
     if i % 10000 == 0:
         print(str(i) + "/60000 complete")
-    
     for j in range(len(images_training[i])):
         images_training[i][j] /= 255
     images_training[i].insert(0, BIAS)
@@ -48,26 +49,23 @@ for i in range(len(images_training)/4):
 
 test_target_counts = [0 for i in range(OUTPUT_N)]
 print("Normalizing Test Data...")
-for i in range(len(images_test)/4):
+for i in range(len(images_test)):
     for j in range(len(images_test[i])):
         images_test[i][j] /= 255
     images_test[i].insert(0, BIAS)
     test_target_counts[labels_test[i]] += 1
-#print(images_training[index])
-# print(labels[index])
 
-hidden_layer = []
-hidden_layer_output = []
-for index in range(HIDDEN_N+1): 
-    hidden_layer.append(perceptron.perceptron(INPUT_SIZE, BIAS, ETA, MOMENTUM))
-    hidden_layer_output.append(0)
+hidden_layer_weights = np.random.uniform(-0.05, 0.05, INPUT_SIZE*(HIDDEN_N+1)).reshape(INPUT_SIZE, HIDDEN_N+1)
+hidden_delta_weights = np.empty(shape=(INPUT_SIZE,HIDDEN_N+1))
+hidden_delta_weights.fill(0)
+hidden_layer_output = np.empty(shape=(HIDDEN_N+1))
+hidden_layer_errors = np.empty(shape=(HIDDEN_N+1))
 
-output_layer = []
-output_layer_output = []
-for index in range(OUTPUT_N):   
-    output_layer.append(perceptron.perceptron(HIDDEN_N, BIAS, ETA, MOMENTUM))
-    output_layer_output.append(0)
-
+output_layer_weights = np.random.uniform(-0.05, 0.05, (HIDDEN_N+1)*OUTPUT_N).reshape(HIDDEN_N+1, OUTPUT_N)
+output_delta_weights = np.empty(shape=(HIDDEN_N+1,OUTPUT_N))
+output_delta_weights.fill(0)
+output_layer_output = np.empty(shape=(OUTPUT_N))
+output_layer_error = np.empty(shape=(OUTPUT_N))
 
 targets = [0.1 for i in range(OUTPUT_N)]
 for epoch in range(50):
@@ -75,26 +73,36 @@ for epoch in range(50):
     testing_confusion_matrix = [[0 for i in range(OUTPUT_N+1)] for j in range(OUTPUT_N)]
 
     print("Begin epoch ", epoch)
-    for index in range(len(images_training)/4):
+    for index in range(len(images_training)):
         if index % TRAINING_UPDATE_FREQ == 0:
             print("Image index: ", index)
+        z_h = matmul(images_training[index], hidden_layer_weights)
+        hidden_layer_output = 1/(1+pow(math.e,-z_h))
+        hidden_layer_output[HIDDEN_N] = BIAS
+        z_o = matmul(hidden_layer_output, output_layer_weights)
+        output_layer_output = 1/(1+pow(math.e,-z_o))
 
-        for id in range(HIDDEN_N):
-            hidden_layer_output[id] = hidden_layer[id].activation(images_training[index])
+        targets[labels_training[index]] = 0.9
         for id in range(OUTPUT_N):
-            output_layer_output[id] = output_layer[id].activation(hidden_layer_output)
             if output_layer_output[id] >= 0.9:
                 training_confusion_matrix[labels_training[index]][id] += 1
 
-        targets[labels_training[index]] = 0.9
-        output_layer_error = calc_output_layer_error(output_layer_output, targets)
+        output_layer_error = output_layer_output*(1 - output_layer_output)*(targets-output_layer_output)
         targets[labels_training[index]] = 0.1
-        hidden_layer_error = calc_hidden_layer_error(hidden_layer_output, output_layer_error)
-
-        for id in range(OUTPUT_N):
-            output_layer[id].update_weights(output_layer_error[id], hidden_layer_output)
-        for id in range(HIDDEN_N):
-            hidden_layer[id].update_weights(hidden_layer_error[id], images_training[index])
+        sums = np.empty(shape=(HIDDEN_N+1))
+        for i in range(HIDDEN_N+1):
+            sums[i] = np.sum(output_layer_weights[i]*output_layer_error)
+        hidden_layer_error = hidden_layer_output*(1 - hidden_layer_output)*sums
+        
+        temp = np.tile(hidden_layer_output, (len(output_layer_error),1))
+        temp = temp.transpose() * output_layer_error
+        output_delta_weights = ETA*temp+MOMENTUM*output_delta_weights
+        output_layer_weights = output_layer_weights + output_delta_weights
+ 
+        temp = np.tile(images_training[index], (len(hidden_layer_error),1))
+        temp = temp.transpose() * hidden_layer_error
+        hidden_delta_weights = ETA*temp+MOMENTUM*hidden_delta_weights
+        hidden_layer_weights = hidden_layer_weights + hidden_delta_weights
         
     f = open("training_data_n100.csv", "a")
     f.write(str(epoch))
@@ -112,10 +120,13 @@ for epoch in range(50):
     for index in range(len(images_test)):
         if index % 1000 == 0:
             print("Test index: ", index)
-        for id in range(HIDDEN_N):
-            hidden_layer_output[id] = hidden_layer[id].activation(images_test[index])
+        z_h = matmul(images_test[index], hidden_layer_weights)
+        hidden_layer_output = 1/(1+pow(math.e,-z_h))
+        hidden_layer_output[HIDDEN_N] = BIAS
+        z_o = matmul(hidden_layer_output, output_layer_weights)
+        output_layer_output = 1/(1+pow(math.e,-z_o))
+        targets[labels_test[index]] = 0.9
         for id in range(OUTPUT_N):
-            output_layer_output[id] = output_layer[id].activation(hidden_layer_output)
             if output_layer_output[id] >= 0.9:
                 testing_confusion_matrix[labels_test[index]][id] += 1
 
